@@ -1,3 +1,6 @@
+import java.util.ArrayList;
+import java.util.Arrays;
+
 import edu.princeton.cs.algs4.In;
 import edu.princeton.cs.algs4.StdDraw;
 import edu.princeton.cs.algs4.StdOut;
@@ -23,7 +26,9 @@ public class BruteCollinearPoints {
        // For every permutation of 4 points run pointOnALine.
        // If it return true, increment segmentCount and create and add the line segment to the set
        // Think of how to implement the array (resizing)
-       segments = new LineSegment[1];
+	   checkInput(points);
+	   
+	   ArrayList<LineSegment> segmentList = new ArrayList<LineSegment>();
        this.points = points;
        double firstSlope;
        double secondSlope;
@@ -37,15 +42,16 @@ public class BruteCollinearPoints {
                    for (int l = k+1; l < points.length; l++) {
                        // If not conlinear continue
                        if (secondSlope == points[k].slopeTo(points[l])) {
-                           if (segmentCount == segments.length) resize(2*segments.length);
                            //StdOut.printf("%d, %d, %d, %d\n", i, j, k, l);
                            int[] startAndEndIndex = getStartAndEndIndex(i, j, k, l);
-                           segments[segmentCount++] = new LineSegment(points[startAndEndIndex[0]], points[startAndEndIndex[1]]);
+                           segmentCount++;
+                           segmentList.add(new LineSegment(points[startAndEndIndex[0]], points[startAndEndIndex[1]]));
                        }                       
                   }           
                } 
            }           
        }
+       segments = segmentList.toArray(new LineSegment[segmentList.size()]);
        
    }
    
@@ -73,31 +79,24 @@ public class BruteCollinearPoints {
    
    public LineSegment[] segments() {
        // the line segments
-       resize(segmentCount);
-       return segments;
+	   return Arrays.copyOf(segments, numberOfSegments());
+   }
+     
+   
+   private static void checkInput(Point[] points) {
+	   if (points == null) throw new IllegalArgumentException("Input is null");
+	   for (int i = 0; i < points.length; i++) {
+		   if (points[i] == null) throw new IllegalArgumentException("A point in the input is null");
+	   }
+	   Point[] pointsSorted = points.clone();
+       Arrays.sort(pointsSorted);
+       for (int i = 1; i < pointsSorted.length; i++) {
+		   if (pointsSorted[i].compareTo(pointsSorted[i-1]) == 0) throw new IllegalArgumentException("The input contains a duplicate point");
+       }	   
    }
    
-   private void resize(int capacity) {
-       LineSegment[] copy = new LineSegment[capacity];
-       for (int i = 0; i < segmentCount; i++) {
-           copy[i] = segments[i];
-       }
-       segments = copy;
-   }
-   
-   public static void main(String[] args) {
-
-       // read the n points from a file
-       In in = new In(args[0]);
-       int n = in.readInt();
-       Point[] points = new Point[n];
-       for (int i = 0; i < n; i++) {
-           int x = in.readInt();
-           int y = in.readInt();
-           points[i] = new Point(x, y);
-       }
-
-       // draw the points
+   private static void visualTest(Point[] points) {
+	    // draw the points
        StdDraw.enableDoubleBuffering();
        StdDraw.setXscale(0, 32768);
        StdDraw.setYscale(0, 32768);
@@ -114,5 +113,21 @@ public class BruteCollinearPoints {
            segment.draw();
        }
        StdDraw.show();
+   }
+
+
+   public static void main(String[] args) {
+
+       // read the n points from a file
+       In in = new In(args[0]);
+       int n = in.readInt();
+       Point[] points = new Point[n];
+       for (int i = 0; i < n; i++) {
+           int x = in.readInt();
+           int y = in.readInt();
+           points[i] = new Point(x, y);
+       }
+
+       visualTest(points);
    }
 }

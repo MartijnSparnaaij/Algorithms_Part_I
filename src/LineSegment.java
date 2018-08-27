@@ -8,7 +8,7 @@
  * 
  */
 
-public class LineSegment {
+public class LineSegment implements Comparable<LineSegment> {
     private final Point p;   // one endpoint of this line segment
     private final Point q;   // the other endpoint of this line segment
 
@@ -58,5 +58,12 @@ public class LineSegment {
     public int hashCode() {
         throw new UnsupportedOperationException();
     }
+
+
+	public int compareTo(LineSegment that) {
+		if (this.p.compareTo(that.p) == 0 && this.q.compareTo(that.q) == 0) return 0;
+		if (this.p.compareTo(that.p) == 0) return this.q.compareTo(that.q);
+		return this.p.compareTo(that.p);
+	}
 
 }

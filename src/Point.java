@@ -99,18 +99,16 @@ public class Point implements Comparable<Point> {
      */
     public Comparator<Point> slopeOrder() {
         /* YOUR CODE HERE */
-        return SLOPE_ORDER;
-    }
-    
-    private final Comparator<Point> SLOPE_ORDER = new Comparator<Point>() {
-        public int compare(Point p, Point q) {
-            double pSlope = slopeTo(p);
-            double qSlope = slopeTo(q);
-            if (pSlope == qSlope) return 0;
-            if (pSlope < qSlope) return -1;
-            return 1;
-        }
-    };
+        return new Comparator<Point>() {
+        	public int compare(Point p, Point q) {
+                double pSlope = slopeTo(p);
+                double qSlope = slopeTo(q);
+                if (pSlope == qSlope) return 0;
+                if (pSlope < qSlope) return -1;
+                return 1;
+            }
+        };
+    }    
 
     /**
      * Returns a string representation of this point.
