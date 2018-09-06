@@ -1,4 +1,5 @@
 import edu.princeton.cs.algs4.In;
+import edu.princeton.cs.algs4.Queue;
 import edu.princeton.cs.algs4.StdOut;
 import edu.princeton.cs.algs4.StdRandom;
 
@@ -14,19 +15,33 @@ import edu.princeton.cs.algs4.StdRandom;
 
 public class Board {
 	
-	private int[][] blocks;
+	private int[] tiles;
 	private final int dimension;
-	
+	private int manhattan;
+	private Board twin;
+		
     public Board(int[][] blocks) {
     	// construct a board from an n-by-n array of blocks
     	// (where blocks[i][j] = block in row i, column j)
     	if (blocks == null) throw new IllegalArgumentException("Input cannot be null.");
     	
-    	this.blocks = blocks;
     	dimension = blocks[0].length;
-    	
+    	tiles = new int[dimension*dimension + 1]; // Do not use the zero
+    	tiles[0] = -1;
+    	for (int i = 0; i < dimension; i++) {
+        	for (int j = 0; j < dimension; j++) {
+        		tiles[rowColToIndex(i,j)] = blocks[i][j];
+        	}    		
+    	}
+    	manhattan = manhattanCalc();
     }
-                                           
+                           
+    private Board(int[] tiles, int dimension) {
+    	this.dimension = dimension;
+    	this.tiles = tiles;
+    	manhattan = manhattanCalc();
+    }
+    
     public int dimension() {
     	// board dimension n
     	return dimension;
@@ -35,55 +50,25 @@ public class Board {
     public int hamming() {
     	// number of blocks out of place
     	int outOfPlaceCount = 0;
-    	for (int i = 0; i < dimension; i++) {
-    		for (int j = 0; j < dimension; j++) {
-    			if (rowColToIndex(i,j) != blocks[i][j] && blocks[i][j] != 0) {
-    				outOfPlaceCount++;
-    			}    			
-    		}    		
+    	for (int i = 1; i < tiles.length; i++) {
+    		if (tiles[i] != i && tiles[i] != 0) outOfPlaceCount++;
     	}    	
     	return outOfPlaceCount;
     }
     
     public int manhattan() {
+    	return manhattan;
+    }
+    
+    private int manhattanCalc() {
     	// sum of Manhattan distances between blocks and goal
     	int manhattanSum = 0;
-    	for (int i = 0; i < dimension; i++) {
-    		for (int j = 0; j < dimension; j++) {   
-    			if (blocks[i][j] != 0) {
-    				manhattanSum += stepsToLoc(i,j,blocks[i][j]);
-    			}
-    		}    		
+    	for (int i = 1; i < tiles.length; i++) {
+			if (tiles[i] != 0) manhattanSum += stepsToLoc(i);
     	}
     	return manhattanSum;
     }
-    
-    
-    private int stepsToLoc(int row, int col, int index) {
-    	int[] rowCol = indexToRowCol(index);
-    	return Math.abs(rowCol[0] - row) + Math.abs(rowCol[1] - col);    	
-    }
-
-    private int[] indexToRowCol(int index) {
-    	int row;
-    	int col;
-    	if (index == 0) {
-    		row = dimension - 1;
-    		col = dimension - 1;
-    	} else {
-    		row = (index - 1)/dimension;
-    		col = (index - 1)%dimension;
-    	}
-    	
-    	int[] rowCol = {row, col};
-    	return rowCol;
-    }
-    
-    private int rowColToIndex(int row, int col) {
-    	return row*dimension + col + 1;
-    }
-
-    
+        
     public boolean isGoal() {
     	// is this board the goal board?
     	return hamming() == 0;
@@ -91,19 +76,24 @@ public class Board {
     
     public Board twin() {
     	// a board that is obtained by exchanging any pair of blocks
-    	int[][] newBlocks = blocks.clone();
+    	if (twin == null) twin = createTwin();
+    	return twin;
+    }
+    
+    private Board createTwin() {
+      	int[] newTiles = tiles.clone();
     	int firstIndex = getRandomIndex();
     	while (!isBlock(firstIndex)) {
     		firstIndex = getRandomIndex();
     	}
     	int secondIndex = getRandomIndex();
-    	while (!isBlock(secondIndex) && secondIndex == firstIndex) {
+    	while (!isBlock(secondIndex) || secondIndex == firstIndex) {
     		secondIndex = getRandomIndex();
     	}
     	
-    	switchBlocks(newBlocks, firstIndex, secondIndex);
+    	switchTiles(newTiles, firstIndex, secondIndex);
     	
-    	return new Board(newBlocks);
+    	return new Board(newTiles, dimension);
     }
     
     private int getRandomIndex() {
@@ -111,26 +101,15 @@ public class Board {
     }
     
     private boolean isBlock(int index) {
-    	return getValueOnIndex(blocks, index) != 0;
+    	return tiles[index] != 0;
     }
     
-    private void switchBlocks(int[][] blocks, int firstIndex, int secondIndex) {
-    	 int firstValue = getValueOnIndex(blocks, firstIndex);
-    	 int secondValue = getValueOnIndex(blocks, secondIndex);
-    	 setValueOnIndex(blocks, firstIndex, secondValue);
-    	 setValueOnIndex(blocks, secondIndex, firstValue);
+    private void switchTiles(int[] tiles, int firstIndex, int secondIndex) {
+    	 int firstValue = tiles[firstIndex];
+    	 int secondValue = tiles[secondIndex];
+    	 tiles[firstIndex] = secondValue;
+    	 tiles[secondIndex] = firstValue;
     }
-    
-    private int getValueOnIndex(int[][] blocks, int index) {
-    	int[] rowCol = indexToRowCol(index);
-    	return blocks[rowCol[0]][rowCol[1]];
-    }
-    
-    private void setValueOnIndex(int[][] blocks, int index, int value) {
-    	int[] rowCol = indexToRowCol(index);
-    	blocks[rowCol[0]][rowCol[1]] = value;
-    }
-    
     
     public boolean equals(Object y) {
     	// does this board equal y?
@@ -138,42 +117,81 @@ public class Board {
     	if (y instanceof Board) {
 			that = (Board) y;
 		} else {
-			throw new IllegalArgumentException("Object must be of the type board!");
+			return false;
 		}
     	
     	return compare(that);
-    }
-    
-    private boolean compare(Board that) {
-    	if (dimension != that.dimension) return false;
-    	for (int i = 0; i < dimension; i++) {
-    		for (int j = 0; j < dimension; j++) {   
-    			if (blocks[i][j] != that.blocks[i][j]) {
-    				return false;
-    			}
-    		}
-    	}    	
-    	return true;
-    }
-    
+    }    
+
     public Iterable<Board> neighbors() {
     	// all neighboring boards
-    	return null;
+    	Queue<Board> neighbours = new Queue<>();    	
+    	int emptyTileIndex = getEmptyTileIndex();
+    	int baseRow = getRow(emptyTileIndex);
+    	int baseCol = getCol(emptyTileIndex);
+    	
+    	if (baseRow > 0) neighbours.enqueue(getSwitchedBoard(baseRow, baseCol, baseRow - 1, baseCol));
+    	if (baseCol > 0) neighbours.enqueue(getSwitchedBoard(baseRow, baseCol, baseRow, baseCol - 1));
+    	if (baseRow < dimension - 1) neighbours.enqueue(getSwitchedBoard(baseRow, baseCol, baseRow + 1, baseCol));
+    	if (baseCol < dimension - 1) neighbours.enqueue(getSwitchedBoard(baseRow, baseCol, baseRow, baseCol + 1));
+    	
+    	return neighbours;
     }
     
     public String toString() {
     	// string representation of this board (in the output format specified below)
         StringBuilder s = new StringBuilder();
         s.append(dimension + "\n");
-        for (int i = 0; i < dimension; i++) {
-            for (int j = 0; j < dimension; j++) {
-                s.append(String.format("%2d ", blocks[i][j]));
-            }
-            s.append("\n");
+        for (int i = 1; i < tiles.length; i++) {
+            s.append(String.format("%2d ", tiles[i]));
+            if (i % dimension == 0) s.append("\n");
         }
         return s.toString();
     }
+    
+    private int stepsToLoc(int index) {
+    	int tile = tiles[index];
+    	return Math.abs(getRow(tile) - getRow(index)) + Math.abs(getCol(tile) - getCol(index));    	
+    }
 
+    private int getRow(int index) {
+    	return (index - 1)/dimension;
+    }
+    
+    private int getCol(int index) {
+    	return (index - 1)%dimension;
+    }
+        
+    private int rowColToIndex(int row, int col) {
+    	return row*dimension + col + 1;
+    }
+    
+    private boolean compare(Board that) {
+    	if (dimension != that.dimension) return false;
+    	for (int i = 1; i < tiles.length; i++) {
+    		if (tiles[i] != that.tiles[i]) return false;
+    	}    	    	
+    	return true;
+    }
+    
+    private Board getSwitchedBoard(int row, int col, int otherRow, int otherCol) {
+    	int[] newTiles = tiles.clone();
+    	int firstIndex = rowColToIndex(row, col);
+    	int secondIndex = rowColToIndex(otherRow, otherCol);
+    	
+    	switchTiles(newTiles, firstIndex, secondIndex);
+    	
+    	return new Board(newTiles, dimension);
+    }
+    
+    private int getEmptyTileIndex() {
+    	for (int i = 1; i < tiles.length; i++) {
+    		if (tiles[i] == 0) return i;
+    	}
+    	return -1;
+    }
+    
+    
     public static void main(String[] args) {
     	// unit tests (not graded)
         In in = new In(args[0]);
@@ -197,6 +215,12 @@ public class Board {
         Board twin2 = initial.twin();
         StdOut.println("Second twin:");
         StdOut.println(twin2.toString());
+                
+        StdOut.println("Neighbouring boards:");
+        Iterable<Board> neighbours = initial.neighbors();
+        for (Board board: neighbours) {
+        	StdOut.println(board.toString());
+        }
         
     }
 }
